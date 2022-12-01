@@ -1,0 +1,178 @@
+(defparameter turn 'X)
+
+(defun gamemode()
+	(format t "===Tic-Tac-Toe Menu===~%")
+	(format t "1. 2-player Tic-Tac-Toe ~%2. Play against AI~%Enter a menu choice(1 or 2): ")
+	(setq gamechoice (read))
+	(if (not (or (= gamechoice 1) (= gamechoice 2)))
+		(gamemode))
+)
+
+
+(defun setBoard()
+	(setf board (list 1 2 3 4 5 6 7 8 9))
+)
+
+(defun getCoords()
+	(format t "Player ~a coordinate (1-9): " turn)
+	(setq x (read))
+	(verifyCoord)
+)
+
+(defun printBoard()
+	(format t "   ~a   |   ~a    |  ~a~%" (nth 0 board) (nth 1 board) (nth 2 board))
+	(format t "=======================~%")
+	(format t "   ~a   |   ~a    |  ~a~%" (nth 3 board) (nth 4 board) (nth 5 board))
+	(format t "=======================~%")
+	(format t "   ~a   |   ~a    |  ~a~%" (nth 6 board) (nth 7 board) (nth 8 board))
+)
+
+(defun verifyCoord()
+	(if (numberp (nth (- x 1) board))
+		(progn
+	   		(setf (nth (- x 1) board) turn)
+	   		(if (= (checkGameState) 0)
+                   (return-from verifyCoord))
+			(if (= gamechoice 1)
+		   	(changeTurn)
+			(progn
+				(aiTurn)
+				(setf turn 'O)
+		      	(if (= (checkGameState) 0)
+					(return-from verifyCoord))
+				(setf turn 'X)))
+	)
+	(format t "Coordinate ~a is already taken!~%" x))
+	(printBoard)
+	(getCoords)
+)
+
+(defun changeTurn()
+	(if (string-equal turn 'X)
+		(setf turn 'O)
+	(setf turn 'X))
+)
+
+(defun checkGameState()
+	(if (checkWin board)
+		(progn
+			(printBoard)
+			(format t "~a is the WINNER" turn)
+			(terpri)
+			(return-from checkGameState 0)))
+	(if (not (checkTie board))
+		(progn
+		(printBoard)
+      	(format t "TIE")
+      	(terpri)
+      	(return-from checkGameState 0)))
+	(return-from checkGameState -1)
+)
+
+(defun aiTurn()
+	(setf newList (getPossibleMove board))
+	(setf chosenMove (makeMovesO newList board 1))
+	(setf chosenMove (nth chosenMove newList))
+	(setf turn 'O)
+	(setf (nth (- chosenMove 1) board) turn)
+)
+
+(defun getPossibleMove(thisBoard)
+	(setf legalMoves '())
+	(loop for mover in thisBoard
+		do (if (numberp mover)
+				(push mover legalMoves)))
+	(return-from getPossibleMove legalMoves)	  
+)
+
+(defun makeMovesO(possibleMoves thisBoard isTop)
+	(prog (node '())
+	(loop for element in possibleMoves
+	do  (setf copyList (copy-list thisBoard))
+		(setf (nth (- element 1) copyList) 'O)
+		(if (isTerminal copyList)
+			(if (checkWin copyList)
+				(push -10 node)
+				(push -1 node))
+		(progn
+			(setf nextMoves(getPossibleMove copyList))
+			(push (makeMovesX nextMoves copyList) node))
+		)
+	)
+	(setf node(reverse node))
+	(if (= isTop 1)
+		(return-from makeMovesO (position (findMin node) node))
+		(return-from makeMovesO (findMin node)))
+	)
+)
+
+(defun makeMovesX(possibleMoves thisBoard)
+	(prog (node '()) 	
+	(loop for element in possibleMoves
+	do  (setf copyList (copy-list thisBoard))
+		(setf (nth (- element 1) copyList) 'X)
+		(if (isTerminal copyList)
+			(if (checkWin copyList)
+				(push 10 node)
+				(push -1 node))
+		(progn
+			(setf nextMoves(getPossibleMove copyList))
+			(push (makeMovesO nextMoves copyList 0) node))
+		)
+	)
+	(return-from makeMovesX (findMax node)))
+)
+
+(defun findMin(tempValues)
+	(setq mini 100)
+	
+	(loop for value in tempValues
+		do (if (< value mini)
+			(setf mini value))
+	)
+	(return-from findMin mini)
+)
+
+(defun findMax(tempValues)
+	(setq maxi -100)
+	
+	(loop for value in tempValues
+		do (if (> value maxi)
+			(setf maxi value))
+	)
+	(return-from findMax maxi)
+)
+
+(defun isTerminal(thisBoard)
+	(or (checkWin thisBoard) (not (checkTie thisBoard)))
+)
+
+(defun checkWin(thisBoard)
+	(or (line 0 1 2 thisBoard) (line 0 3 6 thisBoard) (line 0 4 8 thisBoard) 
+	(line 1 4 7 thisBoard) (line 2 5 8 thisBoard) (line 2 4 6 thisBoard) (line 3 4 5 thisBoard) (line 6 7 8 thisBoard))
+)
+
+(defun line(a b c thisBoard)
+	(and (equal (nth a thisBoard) (nth b thisBoard)) (equal (nth a thisBoard) (nth c thisBoard)))
+)
+
+(defun checkTie(thisBoard)
+	(or (numberp (nth 0 thisBoard)) (numberp (nth 1 thisBoard)) (numberp (nth 2 thisBoard))
+	(numberp (nth 3 thisBoard)) (numberp (nth 4 thisBoard)) (numberp (nth 5 thisBoard))
+	(numberp (nth 6 thisBoard)) (numberp (nth 7 thisBoard)) (numberp (nth 8 thisBoard)))
+)
+
+(defun runGame()
+  	(gamemode)
+   	(setBoard)
+   	(printBoard)
+   	(getCoords)
+   	(format t "Do you want to play again?(Y or N): ")
+   	(setf choice (read))
+   	(if (string-equal choice 'Y)
+	(progn
+		(setf turn 'X)
+		(runGame)))
+)
+
+(runGame)
